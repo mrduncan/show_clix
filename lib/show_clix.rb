@@ -4,7 +4,16 @@ require "curb"
 require "nokogiri"
 
 class ShowClix
-  Event = Struct.new(:date, :time, :status, :url)
+  Event = Struct.new(:date, :time, :status, :url, :available_tickets) do
+    # "on_sale" -> "on sale"
+    def pretty_status
+      status.gsub(/_/, " ")
+    end
+
+    def on_sale?
+      status == "on_sale"
+    end
+  end
 
   HOST = "www.showclix.com"
 
@@ -28,6 +37,15 @@ class ShowClix
           event.time = time["time"]
           event.status = time["event_status"]
           event.url = "http://#{HOST}#{time["uri"]}"
+
+          # If the event is on sale, see how many tickets we can purchase.
+          if event.on_sale?
+            event_curl = Curl::Easy.new(event.url)
+            event_curl.on_success do |event_easy|
+              event.available_tickets = parse_tickets_available(event_easy.body_str)
+            end
+            multi.add event_curl
+          end
 
           event
         end
@@ -58,4 +76,13 @@ class ShowClix
 
     dates
   end
+
+  private
+    def parse_tickets_available(body_str)
+      doc = Nokogiri::HTML(body_str)
+
+      doc.css(".ticket-select option").map do |option|
+        option["value"].to_i
+      end.max
+    end
 end
