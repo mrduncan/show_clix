@@ -13,7 +13,7 @@ unless ARGV[0]
 end
 
 ShowClix.new(ARGV[0]).events.each do |event|
-  print "#{event[:date]} at #{event[:time]} is #{event[:status].gsub(/_/, " ")}."
-  print " #{event[:url]}" if event[:status] == "on_sale"
+  print "#{event.date} at #{event.time} is #{event.status.gsub(/_/, " ")}."
+  print " #{event.url}" if event.status == "on_sale"
   puts
 end
